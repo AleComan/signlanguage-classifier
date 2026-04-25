@@ -1,0 +1,22 @@
+dataset_name: asl_alphabet_v1
+seed: 42
+
+paths:
+  raw_root: data/asl_alphabet_v1/raw
+  train_dir_name: asl_alphabet_train
+  test_dir_name: asl_alphabet_test
+  processed_root: data/asl_alphabet_v1/processed
+
+split:
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  include_official_test_in_test_split: true
+
+processing:
+  allowed_extensions: [".jpg", ".jpeg", ".png", ".bmp", ".webp"]
+  verify_images: true
+  copy_files: true
+  overwrite_processed_dir: false
+  class_renames:
+    del: delete

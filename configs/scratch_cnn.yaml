@@ -1,0 +1,31 @@
+experiment_name: scratch_cnn
+seed: 42
+device: cpu
+
+data:
+  root_dir: data/asl_alphabet_v1/processed
+  train_subdir: train
+  val_subdir: val
+  image_size: 128
+  batch_size: 32
+  num_workers: 0
+
+training:
+  epochs: 2
+  learning_rate: 0.001
+  weight_decay: 0.0
+
+model:
+  num_classes: null  # resolved dynamically from dataset
+  channels: [16, 32, 64]
+  dropout: 0.2
+
+tracking:
+  use_wandb: true
+  project: signlanguage-classifier
+  run_name: scratch-cnn
+  tags: ["scratch", "cnn"]
+
+output:
+  artifacts_dir: artifacts
+  checkpoint_name: scratch_cnn.pt

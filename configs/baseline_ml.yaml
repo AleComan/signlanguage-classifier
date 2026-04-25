@@ -1,0 +1,31 @@
+experiment_name: baseline_ml_logreg
+seed: 42
+device: cpu
+
+data:
+  root_dir: data/asl_alphabet_v1/processed
+  train_subdir: train
+  val_subdir: val
+  image_size: 224
+  batch_size: 32
+  num_workers: 0
+
+model:
+  use_deep_features: true
+  backbone: resnet18
+  feature_dim: 512
+
+classifier:
+  type: logistic_regression  # options: logistic_regression, svm, random_forest
+  params:
+    max_iter: 500
+
+tracking:
+  use_wandb: true
+  project: signlanguage-classifier
+  run_name: baseline-ml
+  tags: ["baseline", "ml"]
+
+output:
+  artifacts_dir: artifacts
+  model_name: baseline_model.joblib

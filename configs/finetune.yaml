@@ -1,0 +1,33 @@
+experiment_name: finetune_resnet18
+seed: 42
+device: cpu
+
+data:
+  root_dir: data/asl_alphabet_v1/processed
+  train_subdir: train
+  val_subdir: val
+  image_size: 224
+  batch_size: 32
+  num_workers: 0
+
+training:
+  epochs: 2
+  learning_rate_head: 0.001
+  learning_rate_backbone: 0.0001
+  weight_decay: 0.0
+
+model:
+  backbone: resnet18
+  freeze_backbone: true
+  unfreeze_last_n_layers: 1
+  num_classes: null
+
+tracking:
+  use_wandb: true
+  project: signlanguage-classifier
+  run_name: finetune-resnet18
+  tags: ["finetune", "transfer-learning"]
+
+output:
+  artifacts_dir: artifacts
+  checkpoint_name: finetune_resnet18.pt
