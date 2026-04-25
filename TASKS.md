@@ -3,7 +3,7 @@
 ## Fase 1 - Scaffolding (hecho)
 - [x] Estructura base de carpetas para data/features/models/training/evaluation/inference/utils.
 - [x] Configuracion YAML para baseline, scratch y finetuning.
-- [x] Configuracion y script de preprocesado para ASL Alphabet (raw -> train/val/test).
+- [x] Configuracion y script de preprocesado para ASL Alphabet (raw -> train/val).
 - [x] Utilidades de reproducibilidad, carga de config y setup seguro de W&B.
 - [x] App Streamlit minima para inferencia con mensaje de checkpoint ausente.
 - [x] Refactor a notebooks: `notebooks/01_eda.ipynb`, `02_baseline_ml.ipynb`, `03_scratch_cnn.ipynb`, `04_finetune.ipynb` con logica reusable en `src/`.

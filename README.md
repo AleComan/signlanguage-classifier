@@ -67,14 +67,14 @@ conda activate DL; python scripts/prepare_dataset.py --config configs/dataset_as
 ```
 
 Salida generada:
-- `data/asl_alphabet_v1/processed/train|val|test/<label>/...`
+- `data/asl_alphabet_v1/processed/train|val/<label>/...`
 - `data/asl_alphabet_v1/processed/metadata.csv`
 - `data/asl_alphabet_v1/processed/summary.json`
 
 Notas:
 - Se renombra automaticamente `del` -> `delete` (configurable en `configs/dataset_asl.yaml`).
-- El split por defecto es 70/15/15 desde `asl_alphabet_train`.
-- Opcionalmente se agregan las imagenes de `asl_alphabet_test` al split `test`.
+- El split por defecto es 85/15 desde `asl_alphabet_train`.
+- El conjunto de test ya no se genera automaticamente: la evaluacion real se hace con fotos propias o webcam.
 
 ## Requisitos
 
@@ -127,7 +127,7 @@ Notebooks disponibles en `notebooks/`:
 
 - `01_eda.ipynb` - exploracion del dataset (clases, tamanos, color, muestras).
 - `02_baseline_ml.ipynb` - features de ResNet18 + clasificadores sklearn (LogReg, SVM, RF) y comparativa.
-- `03_scratch_cnn.ipynb` - `SimpleCNN` entrenada desde cero con curvas y test final.
+- `03_scratch_cnn.ipynb` - `SimpleCNN` entrenada desde cero con curvas y evaluacion final.
 - `04_finetune.ipynb` - fine-tuning de ResNet18 con freezing parcial y LRs discriminativos.
 
 Cada notebook lee su YAML de `configs/` (`baseline_ml.yaml`, `scratch_cnn.yaml`, `finetune.yaml`), guarda los artefactos en `artifacts/<pipeline>/` y, si `tracking.use_wandb` esta activo y hay `WANDB_API_KEY`, registra metricas en Weights & Biases.

@@ -8,10 +8,9 @@ paths:
   processed_root: data/asl_alphabet_v1/processed
 
 split:
-  train_ratio: 0.7
+  train_ratio: 0.85
   val_ratio: 0.15
-  test_ratio: 0.15
-  include_official_test_in_test_split: true
+  include_official_test_in_external_pool: false
 
 processing:
   allowed_extensions: [".jpg", ".jpeg", ".png", ".bmp", ".webp"]

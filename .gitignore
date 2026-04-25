@@ -15,6 +15,7 @@ env/
 # IDE/editor
 .vscode/
 .idea/
+.cursorignore
 
 # Environment and secrets
 .env
