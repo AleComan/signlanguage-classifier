@@ -115,35 +115,6 @@ def _collect_train_class_files(
     return class_to_files
 
 
-def _infer_label_from_official_test_filename(filename: str) -> str:
-    stem = Path(filename).stem
-    return stem.split("_", maxsplit=1)[0]
-
-
-def _copy_official_test_pool(
-    raw_test_root: Path,
-    output_pool_root: Path,
-    allowed_extensions: set[str],
-    verify_images: bool,
-    class_renames: dict[str, str],
-    copy_files: bool,
-) -> int:
-    if not raw_test_root.exists():
-        return 0
-    copied = 0
-    for file_path in sorted(path for path in raw_test_root.iterdir() if path.is_file()):
-        if file_path.suffix.lower() not in allowed_extensions:
-            continue
-        if not _is_valid_image(file_path, verify_images=verify_images):
-            continue
-        inferred = _infer_label_from_official_test_filename(file_path.name)
-        resolved_class = _resolve_class_name(inferred, class_renames)
-        destination = output_pool_root / resolved_class / file_path.name
-        _copy_or_move_file(file_path, destination, copy_files=copy_files)
-        copied += 1
-    return copied
-
-
 def _write_metadata_csv(rows: list[dict[str, str]], destination: Path) -> None:
     fieldnames = ["split", "class_name", "src_path", "dst_path"]
     with destination.open("w", newline="", encoding="utf-8") as csv_file:
@@ -166,13 +137,10 @@ def prepare_asl_alphabet_dataset_train_val_only(config: dict[str, Any]) -> Path:
 
     raw_root = (PROJECT_ROOT / paths_cfg["raw_root"]).resolve()
     train_dir_name = paths_cfg.get("train_dir_name", "asl_alphabet_train")
-    test_dir_name = paths_cfg.get("test_dir_name", "asl_alphabet_test")
     processed_root = (PROJECT_ROOT / paths_cfg["processed_root"]).resolve()
-    external_test_pool_name = paths_cfg.get("external_test_pool_name", "external_test_pool")
 
     train_ratio = float(split_cfg.get("train_ratio", 0.8))
     val_ratio = float(split_cfg.get("val_ratio", 0.2))
-    include_official_test_pool = bool(split_cfg.get("include_official_test_in_external_pool", False))
 
     if train_ratio <= 0 or val_ratio <= 0:
         raise ValueError("train_ratio y val_ratio deben ser > 0.")
@@ -190,8 +158,6 @@ def prepare_asl_alphabet_dataset_train_val_only(config: dict[str, Any]) -> Path:
     rng = random.Random(seed)
 
     split_names = ["train", "val"]
-    if include_official_test_pool:
-        split_names.append(external_test_pool_name)
     _prepare_output_dirs(
         processed_root=processed_root,
         overwrite_processed_dir=overwrite_processed_dir,
@@ -237,26 +203,6 @@ def prepare_asl_alphabet_dataset_train_val_only(config: dict[str, Any]) -> Path:
                         "dst_path": str(dst_file),
                     }
                 )
-
-    if include_official_test_pool:
-        pool_root = processed_root / external_test_pool_name
-        copied = _copy_official_test_pool(
-            raw_test_root=raw_root / test_dir_name,
-            output_pool_root=pool_root,
-            allowed_extensions=allowed_extensions,
-            verify_images=verify_images,
-            class_renames=class_renames,
-            copy_files=copy_files,
-        )
-        summary["counts"][external_test_pool_name] = copied
-        summary["external_test_pool"] = {
-            "enabled": True,
-            "name": external_test_pool_name,
-            "source": str(raw_root / test_dir_name),
-            "copied_files": copied,
-        }
-    else:
-        summary["external_test_pool"] = {"enabled": False}
 
     _write_metadata_csv(metadata_rows, processed_root / "metadata.csv")
     _write_summary_json(summary, processed_root / "summary.json")

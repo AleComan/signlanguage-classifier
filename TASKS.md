@@ -29,6 +29,6 @@
 - [ ] Agregar webcam y prediccion en tiempo real.
 
 ## Fase 6 - Calidad y MLOps
-- [ ] Tests unitarios y de integracion para utilidades y carga de datos.
+- [ ] Pruebas unitarias y de integracion para utilidades y carga de datos.
 - [ ] Integrar Ruff + hooks pre-commit.
 - [ ] Documentar proceso de experimentacion reproducible.

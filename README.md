@@ -41,7 +41,7 @@ signlanguage-classifier/
 
 ## Dataset ASL Alphabet
 
-Estructura esperada del dataset descargado (raw):
+Estructura esperada del dataset raw principal:
 
 ```text
 data/asl_alphabet_v1/raw/
@@ -52,12 +52,6 @@ data/asl_alphabet_v1/raw/
 │   ├── del/
 │   ├── nothing/
 │   └── space/
-└── asl_alphabet_test/
-    ├── A_test.jpg
-    ├── B_test.jpg
-    ├── ...
-    ├── nothing_test.jpg
-    └── space_test.jpg
 ```
 
 Preprocesado a formato `ImageFolder` con split estratificado por clase:
@@ -74,7 +68,7 @@ Salida generada:
 Notas:
 - Se renombra automaticamente `del` -> `delete` (configurable en `configs/dataset_asl.yaml`).
 - El split por defecto es 85/15 desde `asl_alphabet_train`.
-- El conjunto de test ya no se genera automaticamente: la evaluacion real se hace con fotos propias o webcam.
+- La evaluacion real se recomienda con fotos propias o webcam, fuera del split train/val.
 
 ## Requisitos
 

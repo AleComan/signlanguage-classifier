@@ -233,7 +233,7 @@ def _render_batch_classification(
         c4.metric("Error", f"{float(batch_stats['error_rate']):.2f}%")
         st.caption(
             "Accuracy y error se calculan solo sobre imagenes con etiqueta inferible desde el nombre del archivo "
-            "(por ejemplo: `A_01.jpg`, `hello-test.png`)."
+            "(por ejemplo: `A_01.jpg`, `hello_sample.png`)."
         )
     else:
         c3.metric("Accuracy", "N/A")
