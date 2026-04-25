@@ -42,6 +42,9 @@ wandb/
 # Streamlit cache
 .streamlit/secrets.toml
 
+# Jupyter
+.ipynb_checkpoints/
+
 # OS files
 .DS_Store
 Thumbs.db

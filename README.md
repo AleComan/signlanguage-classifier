@@ -17,14 +17,16 @@ signlanguage-classifier/
 │   ├── dataset_asl.yaml
 │   ├── scratch_cnn.yaml
 │   └── finetune.yaml
+├── notebooks/
+│   ├── 01_eda.ipynb
+│   ├── 02_baseline_ml.ipynb
+│   ├── 03_scratch_cnn.ipynb
+│   └── 04_finetune.ipynb
 ├── scripts/
-│   ├── prepare_dataset.py
-│   ├── train_baseline.py
-│   ├── train_scratch.py
-│   ├── train_finetune.py
-│   └── evaluate.py
+│   └── prepare_dataset.py
 ├── src/
 │   ├── data/
+│   ├── eda/
 │   ├── evaluation/
 │   ├── features/
 │   ├── inference/
@@ -39,6 +41,8 @@ signlanguage-classifier/
 ├── TASKS.md
 └── requirements.txt
 ```
+
+Los pipelines de EDA, baseline, scratch y fine-tuning viven ahora como notebooks de Jupyter en `notebooks/`. La logica reusable sigue en `src/`, y `scripts/prepare_dataset.py` se usa una sola vez para preparar el dataset.
 
 ## Dataset ASL Alphabet (recomendado)
 
@@ -114,14 +118,22 @@ WANDB_ENTITY=tu_usuario_o_equipo
 WANDB_PROJECT=signlanguage-classifier
 ```
 
-## Ejecutar pipelines
+## Ejecutar pipelines (notebooks)
+
+Lanza Jupyter desde la raiz del proyecto para que los notebooks puedan importar `src/` automaticamente:
 
 ```bash
-conda activate DL; python scripts/train_baseline.py --config configs/baseline_ml.yaml
-conda activate DL; python scripts/train_scratch.py --config configs/scratch_cnn.yaml
-conda activate DL; python scripts/train_finetune.py --config configs/finetune.yaml
-conda activate DL; python scripts/evaluate.py --config configs/scratch_cnn.yaml
+conda activate DL; jupyter lab
 ```
+
+Notebooks disponibles en `notebooks/`:
+
+- `01_eda.ipynb` - exploracion del dataset (clases, tamanos, color, muestras).
+- `02_baseline_ml.ipynb` - features de ResNet18 + clasificadores sklearn (LogReg, SVM, RF) y comparativa.
+- `03_scratch_cnn.ipynb` - `SimpleCNN` entrenada desde cero con curvas y test final.
+- `04_finetune.ipynb` - fine-tuning de ResNet18 con freezing parcial y LRs discriminativos.
+
+Cada notebook lee su YAML de `configs/` (`baseline_ml.yaml`, `scratch_cnn.yaml`, `finetune.yaml`), guarda los artefactos en `artifacts/<pipeline>/` y, si `tracking.use_wandb` esta activo y hay `WANDB_API_KEY`, registra metricas en Weights & Biases.
 
 ## Ejecutar app Streamlit
 

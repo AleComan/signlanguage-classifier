@@ -38,8 +38,9 @@ def main() -> None:
         st.success(f"Checkpoint encontrado: {model_path}")
     else:
         st.warning(
-            "Aun no hay checkpoint disponible. Entrena primero con alguno de los scripts "
-            "y ajusta MODEL_PATH en tu .env si hace falta."
+            "Aun no hay checkpoint disponible. Entrena primero con alguno de los notebooks "
+            "(notebooks/03_scratch_cnn.ipynb o notebooks/04_finetune.ipynb) y ajusta MODEL_PATH "
+            "en tu .env si hace falta."
         )
 
     uploaded_file = st.file_uploader("Selecciona una imagen", type=["jpg", "jpeg", "png", "webp"])

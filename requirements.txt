@@ -1,0 +1,13 @@
+numpy
+pillow
+pyyaml
+python-dotenv
+scikit-learn
+joblib
+torch
+torchvision
+wandb
+streamlit
+matplotlib
+jupyter
+ruff

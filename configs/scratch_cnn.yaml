@@ -6,6 +6,7 @@ data:
   root_dir: data/asl_alphabet_v1/processed
   train_subdir: train
   val_subdir: val
+  test_subdir: test
   image_size: 128
   batch_size: 32
   num_workers: 0
