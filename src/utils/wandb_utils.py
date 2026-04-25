@@ -30,7 +30,10 @@ def init_wandb_run(
         print("WANDB_API_KEY no encontrado. Se ejecutara sin tracking remoto.")
         return wandb.init(project=project, config=config, name=run_name, tags=tags, mode="disabled")
     api_key = api_key.strip().strip('"').strip("'")
-    wandb.login(key=api_key, relogin=True)
+    os.environ["WANDB_API_KEY"] = api_key
+    # Improve reliability in Windows/Jupyter sessions where the W&B service
+    # can take longer to boot and fail with "Failed to read port info".
+    os.environ.setdefault("WANDB__SERVICE_WAIT", "60")
 
     return wandb.init(
         project=os.getenv("WANDB_PROJECT", project),
