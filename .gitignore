@@ -26,11 +26,15 @@ key.txt
 *.pem
 
 # Data and artifacts
-data/
-datasets/
-artifacts/
-checkpoints/
-outputs/
+/data/
+/datasets/
+/artifacts/
+/checkpoints/
+/outputs/
+!/src/data/
+!/src/data/**
+/src/data/**/__pycache__/
+/src/data/**/__pycache__/**
 *.pt
 *.pth
 *.ckpt
