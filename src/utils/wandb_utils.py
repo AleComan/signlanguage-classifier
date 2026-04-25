@@ -18,7 +18,9 @@ def init_wandb_run(
     tags: list[str] | None = None,
 ) -> wandb.sdk.wandb_run.Run | None:
     """Initialize a W&B run safely using environment variables."""
-    load_dotenv()
+    # Force loading project .env even if a stale WANDB_API_KEY
+    # was already exported in the current shell/session.
+    load_dotenv(override=True)
 
     if not enabled:
         return None
@@ -27,6 +29,8 @@ def init_wandb_run(
     if not api_key:
         print("WANDB_API_KEY no encontrado. Se ejecutara sin tracking remoto.")
         return wandb.init(project=project, config=config, name=run_name, tags=tags, mode="disabled")
+    api_key = api_key.strip().strip('"').strip("'")
+    wandb.login(key=api_key, relogin=True)
 
     return wandb.init(
         project=os.getenv("WANDB_PROJECT", project),
