@@ -30,7 +30,6 @@ data/
 datasets/
 artifacts/
 checkpoints/
-models/
 outputs/
 *.pt
 *.pth
