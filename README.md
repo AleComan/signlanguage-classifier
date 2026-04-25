@@ -25,17 +25,14 @@ signlanguage-classifier/
 ├── scripts/
 │   └── prepare_dataset.py
 ├── src/
-│   ├── data/
 │   ├── eda/
 │   ├── evaluation/
 │   ├── features/
 │   ├── inference/
-│   ├── models/
 │   ├── training/
 │   └── utils/
 ├── tests/
 ├── .cursorignore
-├── .env.example
 ├── .gitignore
 ├── README.md
 ├── TASKS.md
@@ -105,7 +102,7 @@ Este repositorio asume que ya tienes las dependencias instaladas en tu entorno `
 
 ## Variables de entorno
 
-1. Copia `.env.example` a `.env`.
+1. Crea un archivo `.env` en la raiz del proyecto.
 2. Ajusta las variables necesarias (no subas `.env` al repo).
 
 Ejemplo:
@@ -114,6 +111,8 @@ Ejemplo:
 WANDB_API_KEY=tu_api_key
 WANDB_ENTITY=tu_usuario_o_equipo
 WANDB_PROJECT=signlanguage-classifier
+# Opcional: modelo por defecto en Streamlit
+MODEL_PATH=artifacts/baseline_ml/baseline_model.joblib
 ```
 
 ## Ejecutar pipelines (notebooks)
@@ -133,14 +132,26 @@ Notebooks disponibles en `notebooks/`:
 
 Cada notebook lee su YAML de `configs/` (`baseline_ml.yaml`, `scratch_cnn.yaml`, `finetune.yaml`), guarda los artefactos en `artifacts/<pipeline>/` y, si `tracking.use_wandb` esta activo y hay `WANDB_API_KEY`, registra metricas en Weights & Biases.
 
+Artefactos habituales:
+- `artifacts/baseline_ml/baseline_model.joblib` (baseline ML con scaler + class_names).
+- checkpoints Torch en `artifacts/...` (`.pt`, `.pth`, `.ckpt`) para los pipelines deep learning.
+
 ## Ejecutar app Streamlit
 
 ```bash
 conda activate DL; streamlit run app/streamlit_app.py
 ```
 
-La app permite subir una imagen, intentar cargar un checkpoint y mostrar top-k predicciones.
-Si no existe checkpoint, mostrara un mensaje explicito para guiar el siguiente paso.
+La app permite:
+- seleccionar modelo desde `artifacts/` (`.joblib`, `.pt`, `.pth`, `.ckpt`),
+- ver caracteristicas del modelo en la barra lateral,
+- subir una o varias imagenes,
+- obtener top-k predicciones (hasta top-5) por imagen,
+- limpiar imagenes subidas con un boton dedicado.
+
+Notas:
+- Si existe `MODEL_PATH` en `.env`, se usa como opcion por defecto.
+- Si no hay modelos detectados en `artifacts/`, la app lo indica con un mensaje explicito.
 
 ## Notas de seguridad y reproducibilidad
 
