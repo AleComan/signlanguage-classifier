@@ -42,9 +42,7 @@ signlanguage-classifier/
 └── requirements.txt
 ```
 
-Los pipelines de EDA, baseline, scratch y fine-tuning viven ahora como notebooks de Jupyter en `notebooks/`. La logica reusable sigue en `src/`, y `scripts/prepare_dataset.py` se usa una sola vez para preparar el dataset.
-
-## Dataset ASL Alphabet (recomendado)
+## Dataset ASL Alphabet
 
 Estructura esperada del dataset descargado (raw):
 
