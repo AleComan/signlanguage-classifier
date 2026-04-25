@@ -40,7 +40,7 @@ signlanguage-classifier/
 └── requirements.txt
 ```
 
-## Dataset ASL Alphabet (recomendado)
+## Dataset ASL Alphabet
 
 Estructura esperada del dataset descargado (raw):
 
