@@ -11,7 +11,7 @@ data:
   num_workers: 0
 
 training:
-  epochs: 2
+  epochs: 10
   learning_rate_head: 0.001
   learning_rate_backbone: 0.0001
   weight_decay: 0.0

@@ -15,6 +15,13 @@ from torchvision import models, transforms
 from src.evaluation.metrics import topk_from_logits
 
 SUPPORTED_MODEL_EXTENSIONS = (".joblib", ".pt", ".pth", ".ckpt")
+FEATURE_ARTIFACT_TOKENS = ("feature", "features", "embedding", "embeddings", "cache")
+
+
+def _looks_like_feature_artifact(path: Path) -> bool:
+    """Return True when filename likely corresponds to cached features, not a model."""
+    stem = path.stem.lower()
+    return any(token in stem for token in FEATURE_ARTIFACT_TOKENS)
 
 
 @dataclass
@@ -38,7 +45,13 @@ def discover_available_models(models_root: str | Path) -> list[Path]:
     if not root.exists():
         return []
     return sorted(
-        (path for path in root.rglob("*") if path.is_file() and path.suffix.lower() in SUPPORTED_MODEL_EXTENSIONS),
+        (
+            path
+            for path in root.rglob("*")
+            if path.is_file()
+            and path.suffix.lower() in SUPPORTED_MODEL_EXTENSIONS
+            and not _looks_like_feature_artifact(path)
+        ),
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )

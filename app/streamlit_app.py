@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import re
 import sys
+from collections import Counter
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -47,9 +49,29 @@ def _resolve_default_model_path() -> Path:
 
 
 def _format_model_label(path: Path) -> str:
-    """Create friendly model selector label."""
-    rel_path = path.relative_to(PROJECT_ROOT) if path.is_relative_to(PROJECT_ROOT) else path
-    return str(rel_path)
+    """Create friendly model selector label without full path."""
+    parent_name = path.parent.name
+    if parent_name and parent_name != path.anchor:
+        return f"{path.name} ({parent_name})"
+    return path.name
+
+
+def _build_model_labels(paths: list[Path]) -> list[str]:
+    """Build readable labels and disambiguate duplicates."""
+    base_labels = [_format_model_label(path) for path in paths]
+    counts = Counter(base_labels)
+    labels: list[str] = []
+    for path, base_label in zip(paths, base_labels):
+        if counts[base_label] == 1:
+            labels.append(base_label)
+            continue
+        # If two models share same filename/parent, include one extra parent level.
+        grandparent = path.parent.parent.name if path.parent.parent != path.parent else ""
+        if grandparent:
+            labels.append(f"{path.name} ({grandparent}/{path.parent.name})")
+        else:
+            labels.append(base_label)
+    return labels
 
 
 @st.cache_resource(show_spinner=False)
@@ -62,14 +84,86 @@ def _load_model_cached(model_path: str, device_label: str) -> LoadedModel:
 def _render_model_metadata(loaded_model: LoadedModel) -> None:
     """Display human-readable metadata for selected model."""
     st.sidebar.subheader("Caracteristicas del modelo")
+    file_stats = loaded_model.path.stat()
     metadata: dict[str, Any] = {
-        "path": str(loaded_model.path),
+        "file_name": loaded_model.path.name,
+        "file_size_mb": round(file_stats.st_size / (1024 * 1024), 2),
+        "last_modified": datetime.fromtimestamp(file_stats.st_mtime).strftime("%Y-%m-%d %H:%M"),
         "kind": loaded_model.kind,
         "image_size": loaded_model.image_size,
         "num_classes": len(loaded_model.class_names),
     }
     metadata.update(loaded_model.metadata)
-    st.sidebar.json(metadata)
+
+    st.sidebar.markdown(
+        """
+        <style>
+        .model-meta-card {
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .model-meta-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 5px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+            font-size: 0.9rem;
+        }
+        .model-meta-row:last-child {
+            border-bottom: none;
+        }
+        .model-meta-key {
+            color: rgba(255, 255, 255, 0.70);
+        }
+        .model-meta-value {
+            text-align: right;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.94);
+            word-break: break-word;
+        }
+        .class-chip-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .class-chip {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.07);
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.sidebar.markdown(
+        f"""
+        <div class="model-meta-card">
+            <div class="model-meta-row"><span class="model-meta-key">Archivo</span><span class="model-meta-value">{metadata.get("file_name", "-")}</span></div>
+            <div class="model-meta-row"><span class="model-meta-key">Tipo</span><span class="model-meta-value">{metadata.get("kind", "-")}</span></div>
+            <div class="model-meta-row"><span class="model-meta-key">Tamano</span><span class="model-meta-value">{metadata.get("file_size_mb", "-")} MB</span></div>
+            <div class="model-meta-row"><span class="model-meta-key">Ultima modificacion</span><span class="model-meta-value">{metadata.get("last_modified", "-")}</span></div>
+            <div class="model-meta-row"><span class="model-meta-key">Image size</span><span class="model-meta-value">{metadata.get("image_size", "-")}</span></div>
+            <div class="model-meta-row"><span class="model-meta-key">Num clases</span><span class="model-meta-value">{metadata.get("num_classes", "-")}</span></div>
+            <div class="model-meta-row"><span class="model-meta-key">Familia</span><span class="model-meta-value">{metadata.get("model_family", "-")}</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if loaded_model.class_names:
+        class_chips = "".join(f"<span class='class-chip'>{class_name}</span>" for class_name in loaded_model.class_names)
+        st.sidebar.markdown("**Clases**")
+        st.sidebar.markdown(f"<div class='class-chip-wrap'>{class_chips}</div>", unsafe_allow_html=True)
 
 
 def _render_predictions(image_name: str, predictions: list[tuple[str, float]]) -> None:
@@ -159,6 +253,74 @@ def _init_session_state() -> None:
         st.session_state["uploader_key"] = 0
     if "selected_image_name" not in st.session_state:
         st.session_state["selected_image_name"] = None
+    if "uploaded_images_data" not in st.session_state:
+        # Stored as list[(filename, bytes)] so images persist across UI mode switches.
+        st.session_state["uploaded_images_data"] = []
+
+
+def _render_loaded_images_right_panel(persisted_images: list[tuple[str, bytes]]) -> None:
+    """Render a floating right panel to manage session images."""
+    st.markdown(
+        """
+        <style>
+        /* Keep open panel visually anchored below the trigger button. */
+        div[data-testid="stPopover"] [data-baseweb="popover"] {
+            transform-origin: top right !important;
+            margin-top: 8px !important;
+            animation: images-popover-enter 180ms ease-out;
+        }
+        @keyframes images-popover-enter {
+            from {
+                opacity: 0;
+                transform: translateY(-8px) scale(0.99);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        /* Match uploader vertical rhythm so trigger aligns with upload block. */
+        div[data-testid="stPopover"] > div > button {
+            min-height: 42px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.popover(f"Imagenes cargadas ({len(persisted_images)})", width="stretch"):
+        if st.button(
+            "Borrar todas",
+            width="stretch",
+            disabled=not persisted_images,
+            key="clear_all_images_right_panel",
+        ):
+            st.session_state["uploader_key"] += 1
+            st.session_state["selected_image_name"] = None
+            st.session_state["uploaded_images_data"] = []
+            st.rerun()
+
+        if not persisted_images:
+            st.caption("No hay imagenes cargadas.")
+            return
+
+        st.caption("Pulsa `✕` para quitar una imagen concreta.")
+        # Fixed-height list prevents popover from growing and flipping above the trigger.
+        list_container = st.container(height=360, border=False)
+        with list_container:
+            for idx, (name, _) in enumerate(persisted_images):
+                name_col, remove_col = st.columns([5, 1])
+                with name_col:
+                    st.caption(f"{idx + 1}. {name}")
+                with remove_col:
+                    if st.button("✕", key=f"remove_image_{idx}_{name}", width="stretch"):
+                        # Remove by position to handle possible duplicate filenames.
+                        st.session_state["uploaded_images_data"] = [
+                            image_item for image_pos, image_item in enumerate(persisted_images) if image_pos != idx
+                        ]
+                        # Reset uploader widget so removed files are not re-added on rerun.
+                        st.session_state["uploader_key"] += 1
+                        st.session_state["selected_image_name"] = None
+                        st.rerun()
 
 
 def _render_batch_classification(
@@ -168,7 +330,7 @@ def _render_batch_classification(
     selected_label: str,
 ) -> None:
     """Render batch image classification UI and results."""
-    uploader_col, clear_col = st.columns([4, 1])
+    uploader_col, right_panel_col = st.columns([4, 1])
     with uploader_col:
         uploaded_files = st.file_uploader(
             "Selecciona una o varias imagenes",
@@ -176,15 +338,28 @@ def _render_batch_classification(
             accept_multiple_files=True,
             key=f"uploaded_images_{st.session_state['uploader_key']}",
         )
-    with clear_col:
-        st.write("")
-        st.write("")
-        if st.button("Borrar fotos", width="stretch"):
-            st.session_state["uploader_key"] += 1
-            st.session_state["selected_image_name"] = None
-            st.rerun()
 
-    if not uploaded_files:
+    persisted_images: list[tuple[str, bytes]] = st.session_state["uploaded_images_data"]
+    if uploaded_files:
+        # Merge new picks with session-persisted images so users can keep managing them across mode switches.
+        order = [name for name, _ in persisted_images]
+        images_by_name = {name: data for name, data in persisted_images}
+        for uploaded_file in uploaded_files:
+            file_name = uploaded_file.name
+            images_by_name[file_name] = uploaded_file.getvalue()
+            if file_name not in order:
+                order.append(file_name)
+        st.session_state["uploaded_images_data"] = [(name, images_by_name[name]) for name in order]
+        # Clear uploader selected-file chips to avoid redundant duplicated UI.
+        st.session_state["uploader_key"] += 1
+        st.rerun()
+
+    with right_panel_col:
+        # Add vertical spacer so the trigger sits aligned with uploader widget.
+        st.markdown("<div style='height: 1.95rem;'></div>", unsafe_allow_html=True)
+        _render_loaded_images_right_panel(persisted_images)
+
+    if not persisted_images:
         st.info("Sube al menos una imagen para iniciar la inferencia.")
         st.stop()
 
@@ -195,9 +370,9 @@ def _render_batch_classification(
     top1_predictions: dict[str, tuple[str, float]] = {}
     preview_images: dict[str, Image.Image] = {}
 
-    total_files = len(uploaded_files)
-    for idx, uploaded_file in enumerate(uploaded_files, start=1):
-        image = Image.open(uploaded_file).convert("RGB")
+    total_files = len(persisted_images)
+    for idx, (image_name, image_bytes) in enumerate(persisted_images, start=1):
+        image = Image.open(BytesIO(image_bytes)).convert("RGB")
         try:
             predictions = predict_image_topk(
                 loaded_model=loaded_model,
@@ -206,14 +381,14 @@ def _render_batch_classification(
                 device=device,
             )
         except Exception as error:
-            st.error(f"No se pudo predecir {uploaded_file.name}: {error}")
+            st.error(f"No se pudo predecir {image_name}: {error}")
             progress.progress(idx / total_files, text=f"Procesadas {idx}/{total_files} imagenes")
             continue
 
-        rows.append(_prediction_row(uploaded_file.name, predictions, top_k=top_k))
-        detailed_predictions[uploaded_file.name] = predictions
-        top1_predictions[uploaded_file.name] = predictions[0]
-        preview_images[uploaded_file.name] = image
+        rows.append(_prediction_row(image_name, predictions, top_k=top_k))
+        detailed_predictions[image_name] = predictions
+        top1_predictions[image_name] = predictions[0]
+        preview_images[image_name] = image
         progress.progress(idx / total_files, text=f"Procesadas {idx}/{total_files} imagenes")
 
     progress.empty()
@@ -370,7 +545,7 @@ def _render_batch_classification(
             )
 
     st.success(
-        f"Clasificacion completada para {len(uploaded_files)} imagen(es) con el modelo {selected_label}."
+        f"Clasificacion completada para {len(persisted_images)} imagen(es) con el modelo {selected_label}."
     )
 
 
@@ -530,7 +705,7 @@ def main() -> None:
         )
         return
 
-    model_options = [_format_model_label(path) for path in discovered_models]
+    model_options = _build_model_labels(discovered_models)
     st.sidebar.header("Configuracion")
     selected_label = st.sidebar.selectbox("Modelo", options=model_options, index=0)
     selected_model_path = discovered_models[model_options.index(selected_label)]
