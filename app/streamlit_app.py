@@ -239,10 +239,15 @@ def _build_batch_stats(
 
 
 def _image_to_data_uri(image: Image.Image, width: int = 560, height: int = 320) -> str:
-    """Convert PIL image to fixed-size data URI for consistent card rendering."""
-    fitted = ImageOps.fit(image.convert("RGB"), (width, height), method=Image.Resampling.LANCZOS)
+    """Convert PIL image to fixed-size data URI without cropping original content."""
+    # Use contain (not fit) to preserve full image; pad the remaining area.
+    contained = ImageOps.contain(image.convert("RGB"), (width, height), method=Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", (width, height), color=(16, 18, 23))
+    x = (width - contained.width) // 2
+    y = (height - contained.height) // 2
+    canvas.paste(contained, (x, y))
     buffer = BytesIO()
-    fitted.save(buffer, format="JPEG", quality=90)
+    canvas.save(buffer, format="JPEG", quality=90)
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
     return f"data:image/jpeg;base64,{encoded}"
 

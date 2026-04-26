@@ -16,12 +16,32 @@ from src.evaluation.metrics import topk_from_logits
 
 SUPPORTED_MODEL_EXTENSIONS = (".joblib", ".pt", ".pth", ".ckpt")
 FEATURE_ARTIFACT_TOKENS = ("feature", "features", "embedding", "embeddings", "cache")
+NON_MODEL_ARTIFACT_TOKENS = ("scaler", "labelencoder", "label_encoder", "labels", "manifest", "metadata")
 
 
 def _looks_like_feature_artifact(path: Path) -> bool:
     """Return True when filename likely corresponds to cached features, not a model."""
     stem = path.stem.lower()
     return any(token in stem for token in FEATURE_ARTIFACT_TOKENS)
+
+
+def _looks_like_auxiliary_artifact(path: Path) -> bool:
+    """Return True when filename likely corresponds to helper artifacts, not model weights."""
+    stem = path.stem.lower()
+    return any(token in stem for token in NON_MODEL_ARTIFACT_TOKENS)
+
+
+def _is_discoverable_model_file(path: Path) -> bool:
+    """Return True when file should appear in model selector."""
+    if not path.is_file():
+        return False
+    if path.suffix.lower() not in SUPPORTED_MODEL_EXTENSIONS:
+        return False
+    if _looks_like_feature_artifact(path):
+        return False
+    if _looks_like_auxiliary_artifact(path):
+        return False
+    return True
 
 
 @dataclass
@@ -40,21 +60,13 @@ class LoadedModel:
 
 
 def discover_available_models(models_root: str | Path) -> list[Path]:
-    """List supported model files under the provided root."""
+    """List all supported model files under artifacts root and subfolders."""
     root = Path(models_root)
     if not root.exists():
         return []
-    return sorted(
-        (
-            path
-            for path in root.rglob("*")
-            if path.is_file()
-            and path.suffix.lower() in SUPPORTED_MODEL_EXTENSIONS
-            and not _looks_like_feature_artifact(path)
-        ),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
+
+    discovered = {path.resolve() for path in root.rglob("*") if _is_discoverable_model_file(path)}
+    return sorted(discovered, key=lambda path: path.stat().st_mtime, reverse=True)
 
 
 def load_torch_model(
