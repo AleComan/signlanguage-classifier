@@ -11,7 +11,7 @@ data:
   num_workers: 0
 
 training:
-  epochs: 2
+  epochs: 10
   learning_rate: 0.001
   weight_decay: 0.0
 
@@ -22,9 +22,25 @@ model:
 
 tracking:
   use_wandb: true
-  project: signlanguage-classifier
+  project: image-classification
   run_name: scratch-cnn
   tags: ["scratch", "cnn"]
+
+hparam_search:
+  enabled: true
+  strategy: random   # grid | random
+  seed: 22
+  n_trials: 4
+  max_trials: 12
+  param_grid:
+    learning_rate: [0.001, 0.0005, 0.0001]
+    weight_decay: [0.0, 0.0001]
+    dropout: [0.2, 0.3, 0.5]
+    channels:
+      - [16, 32, 64]
+      - [32, 64, 128]
+    batch_size: [32, 64]
+    epochs: 8
 
 output:
   artifacts_dir: artifacts
