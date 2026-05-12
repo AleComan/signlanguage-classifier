@@ -31,12 +31,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.inference.predict import (
+from src.inference.predict import (  # noqa: E402
     LoadedModel,
     discover_available_models,
     load_model_for_inference,
     predict_image_topk,
 )
+from src.inference.generator import generate_phrase_sequence, resolve_default_generator_checkpoint  # noqa: E402
 
 
 def _resolve_default_model_path() -> Path:
@@ -559,23 +560,16 @@ def _render_top_mode_buttons() -> str:
     if "selected_mode" not in st.session_state:
         st.session_state["selected_mode"] = "Clasificacion por imagenes"
 
-    img_col, video_col = st.columns(2)
-    with img_col:
-        if st.button(
-            "Clasificacion por imagenes",
-            type="primary" if st.session_state["selected_mode"] == "Clasificacion por imagenes" else "secondary",
-            width="stretch",
-        ):
-            st.session_state["selected_mode"] = "Clasificacion por imagenes"
-            st.rerun()
-    with video_col:
-        if st.button(
-            "Video en tiempo real",
-            type="primary" if st.session_state["selected_mode"] == "Video en tiempo real" else "secondary",
-            width="stretch",
-        ):
-            st.session_state["selected_mode"] = "Video en tiempo real"
-            st.rerun()
+    modes = ["Clasificacion por imagenes", "Video en tiempo real", "Generacion"]
+    for mode, column in zip(modes, st.columns(3)):
+        with column:
+            if st.button(
+                mode,
+                type="primary" if st.session_state["selected_mode"] == mode else "secondary",
+                width="stretch",
+            ):
+                st.session_state["selected_mode"] = mode
+                st.rerun()
 
     return st.session_state["selected_mode"]
 
@@ -689,6 +683,58 @@ def _render_realtime_video(
         )
 
 
+def _render_generation() -> None:
+    """Render phrase-to-sign GIF generation UI."""
+    st.subheader("Generacion de frases")
+
+    phrase = st.text_input("Frase", value="ASL")
+    frame_duration = st.select_slider(
+        "Intervalo de tiempo por signo",
+        options=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
+        value=1.0,
+        format_func=lambda value: f"{value:.2f}s",
+    )
+
+    checkpoint_path = resolve_default_generator_checkpoint()
+    if checkpoint_path is not None:
+        st.caption(f"Generador detectado: `{checkpoint_path.name}`")
+    else:
+        st.caption("No se encontro checkpoint generativo; se usaran muestras del dataset o frames de respaldo.")
+
+    if not phrase.strip():
+        st.info("Escribe una frase para generar la secuencia.")
+        return
+
+    if st.button("Generar GIF", type="primary"):
+        runtime_device = "cuda" if torch.cuda.is_available() else "cpu"
+        with st.spinner("Generando secuencia ASL..."):
+            try:
+                sequence = generate_phrase_sequence(
+                    phrase=phrase,
+                    frame_duration=float(frame_duration),
+                    checkpoint_path=checkpoint_path,
+                    device=runtime_device,
+                )
+            except Exception as error:
+                st.error(f"No se pudo generar la secuencia: {error}")
+                return
+
+        st.image(sequence.gif_bytes, caption="Secuencia generada", width=420)
+        st.write("Signos:", " ".join(sequence.labels))
+        if sequence.skipped_characters:
+            skipped = " ".join(repr(character) for character in sequence.skipped_characters)
+            st.warning(f"Caracteres ignorados: {skipped}")
+
+        safe_stem = re.sub(r"[^a-zA-Z0-9]+", "_", phrase).strip("_").lower()[:40] or "asl_phrase"
+        st.download_button(
+            "Descargar GIF",
+            data=sequence.gif_bytes,
+            file_name=f"{safe_stem}.gif",
+            mime="image/gif",
+            width="stretch",
+        )
+
+
 def main() -> None:
     """Run Streamlit inference app."""
     st.set_page_config(page_title="Sign Language Classifier", layout="wide")
@@ -696,7 +742,11 @@ def main() -> None:
     section = _render_top_mode_buttons()
 
     st.title("Sign Language Classifier")
-    st.caption("Selecciona un modelo y el modulo de inferencia: imagenes o video en tiempo real.")
+    st.caption("Selecciona un modelo y el modulo de inferencia o generacion.")
+
+    if section == "Generacion":
+        _render_generation()
+        return
 
     artifacts_root = PROJECT_ROOT / "artifacts"
     discovered_models = discover_available_models(artifacts_root)

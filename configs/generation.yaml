@@ -1,0 +1,47 @@
+experiment_name: conditional_gan
+seed: 42
+device: auto
+
+data:
+  root_dir: data/asl_alphabet_v1/processed
+  train_subdir: train
+  val_subdir: val
+  image_size: 64
+  batch_size: 64
+  num_workers: 0
+
+model:
+  latent_dim: 128
+  embedding_dim: 64
+  image_channels: 3
+  generator_channels: [512, 256, 128, 64]
+  discriminator_channels: [64, 128, 256, 512]
+  label_smoothing: 0.9
+
+training:
+  epochs: 50
+  generator_lr: 0.0002
+  discriminator_lr: 0.0002
+  betas: [0.5, 0.999]
+  sample_interval: 1
+  checkpoint_interval: 10
+  fixed_samples_per_class: 1
+
+metrics:
+  enabled: false
+  interval: 5
+  num_samples: 512
+  batch_size: 32
+  compute_inception_score: true
+  compute_fid: true
+
+tracking:
+  use_wandb: true
+  project: image-generation
+  run_name: conditional-gan-asl
+  tags: ["generation", "cgan", "asl"]
+
+output:
+  artifacts_dir: artifacts/generation
+  checkpoint_name: conditional_gan.pt
+  samples_dir: samples
