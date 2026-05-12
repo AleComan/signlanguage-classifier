@@ -44,6 +44,18 @@ signlanguage-classifier/
 
 ## Dataset ASL Alphabet
 
+El dataset utilizado es el **ASL Alphabet** ([American Sign Language](https://www.kaggle.com/datasets/grassknoted/asl-alphabet)), una colección de imágenes diseñada para la clasificación de los gestos manuales del alfabeto de la lengua de signos americana. 
+
+El conjunto consta de 29 clases en total:
+- **26 letras** (A-Z).
+- **3 clases especiales:** *SPACE* (espacio), *DELETE* (borrar) y *NOTHING* (ningún gesto, fondo vacío).
+
+A continuación se muestra un ejemplo de las imágenes que componen el dataset:
+
+Ejemplo: 
+
+![Muestra del dataset ASL](./docs/asl_sample.jpg)
+
 Estructura esperada del dataset raw principal:
 
 ```text
@@ -71,7 +83,7 @@ Salida generada:
 Notas:
 - Se renombra automaticamente `del` -> `delete` (configurable en `configs/dataset_asl.yaml`).
 - El split por defecto es 85/15 desde `asl_alphabet_train`.
-- La evaluacion real se recomienda con fotos propias o webcam, fuera del split train/val.
+- La evaluación real se ha llevado a cabo con fotos propias o webcam, fuera del split train/val.
 
 ## Requisitos
 
@@ -95,12 +107,12 @@ conda activate DL
 ```
 
 Este repositorio asume que ya tienes las dependencias instaladas en tu entorno `DL`.
-`requirements.txt` se mantiene como referencia para reproducibilidad o para otros entornos.
+`requirements.txt` se mantiene como referencia para reproducibilidad.
 
 ## Variables de entorno
 
-1. Crea un archivo `.env` en la raiz del proyecto.
-2. Ajusta las variables necesarias (no subas `.env` al repo).
+1. Crea un archivo `.env` en la raíz del proyecto.
+2. Ajusta las variables necesarias.
 
 Ejemplo:
 
@@ -116,7 +128,7 @@ GENERATOR_MODEL_PATH=artifacts/generation/conditional_gan.pt
 
 ## Ejecutar pipelines (notebooks)
 
-Lanza Jupyter desde la raiz del proyecto para que los notebooks puedan importar `src/` automaticamente:
+Lanza Jupyter desde la raíz del proyecto para que los notebooks puedan importar `src/` automaticamente:
 
 ```bash
 conda activate DL; jupyter lab
@@ -124,9 +136,9 @@ conda activate DL; jupyter lab
 
 Notebooks disponibles en `notebooks/`:
 
-- `01_eda.ipynb` - exploracion del dataset (clases, tamanos, color, muestras).
+- `01_eda.ipynb` - exploración del dataset (clases, tamanos, color, muestras).
 - `02_baseline_ml.ipynb` - features de ResNet18 + clasificadores sklearn (LogReg, SVM, RF) y comparativa.
-- `03_scratch_cnn.ipynb` - `SimpleCNN` entrenada desde cero con curvas y evaluacion final.
+- `03_scratch_cnn.ipynb` - `SimpleCNN` entrenada desde cero con curvas y evaluación final.
 - `04_finetune.ipynb` - fine-tuning de ResNet18 con freezing parcial y LRs discriminativos.
 - `05_generation_train.ipynb` - cGAN condicional, visualizacion de muestras y prueba `frase -> GIF`.
 
@@ -202,8 +214,23 @@ Notas:
 - Si no hay checkpoint generativo, la pestana `Generacion` usa fallback de dataset/placeholders para seguir funcionando.
 - Si no hay modelos discriminativos detectados en `artifacts/`, la app lo indica con un mensaje explicito.
 
-## Notas de seguridad y reproducibilidad
+### Flujo recomendado
 
-- No guardar claves reales en archivos versionados.
-- `wandb/`, checkpoints, datasets y archivos temporales se ignoran en `.gitignore`.
-- Se incluye utilitario de seeds reproducibles para Python, NumPy y PyTorch.
+1. Arranca la app:
+   ```bash
+   conda activate DL; streamlit run app/streamlit_app.py
+   ```
+2. En la barra lateral, selecciona el modelo (`.joblib`, `.pt`, `.pth`, `.ckpt`).
+3. En **"Clasificacion por imagenes"**, sube una o varias imagenes (drag & drop o selector de archivos).
+4. La app muestra:
+   - tabla top-k por imagen,
+   - miniaturas con top-5,
+   - confianza media del lote,
+   - accuracy/error del lote **solo** cuando la etiqueta real se puede inferir del nombre del archivo.
+
+## 👥 Autores del Proyecto
+
+Este proyecto ha sido desarrollado por:
+
+* **Alejandro Torres Martínez** - [GitHub](https://github.com/alejandrotm22) | [LinkedIn](https://www.linkedin.com/in/alejandro-torres-martinez-b65490301/)
+* **Alejandro Coman Venceslá** -  [GitHub](https://github.com/AleComan) | [LinkedIn](https://www.linkedin.com/in/aleecv/)
