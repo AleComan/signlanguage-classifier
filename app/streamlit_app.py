@@ -39,6 +39,8 @@ from src.inference.predict import (  # noqa: E402
 )
 from src.inference.generator import generate_phrase_sequence, resolve_default_generator_checkpoint  # noqa: E402
 
+TORCH_MODEL_EXTENSIONS = (".pt", ".pth", ".ckpt")
+
 
 def _resolve_default_model_path() -> Path:
     """Resolve optional default model path from env var."""
@@ -47,6 +49,46 @@ def _resolve_default_model_path() -> Path:
     if not configured:
         return PROJECT_ROOT / "artifacts"
     return (PROJECT_ROOT / configured).resolve()
+
+
+@st.cache_data(show_spinner=False)
+def _read_torch_checkpoint_model_type(path: str, modified_time: float) -> str | None:
+    """Read the model_type metadata from a Torch checkpoint."""
+    _ = modified_time
+    try:
+        payload = torch.load(path, map_location="cpu")
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    model_type = payload.get("model_type")
+    return str(model_type) if model_type is not None else None
+
+
+def _is_generative_model_path(path: Path) -> bool:
+    """Return True for supported generative checkpoints."""
+    if path.suffix.lower() not in TORCH_MODEL_EXTENSIONS or not path.is_file():
+        return False
+    model_type = _read_torch_checkpoint_model_type(str(path.resolve()), path.stat().st_mtime)
+    return model_type == "conditional_gan"
+
+
+def _discover_generative_models(models_root: str | Path) -> list[Path]:
+    """List conditional generation checkpoints under artifacts."""
+    root = Path(models_root)
+    if not root.exists():
+        return []
+    discovered = {
+        path.resolve()
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in TORCH_MODEL_EXTENSIONS and _is_generative_model_path(path)
+    }
+    return sorted(discovered, key=lambda path: path.stat().st_mtime, reverse=True)
+
+
+def _filter_discriminative_models(paths: list[Path]) -> list[Path]:
+    """Keep only models supported by the discriminative inference path."""
+    return [path for path in paths if not _is_generative_model_path(path)]
 
 
 def _format_model_label(path: Path) -> str:
@@ -73,6 +115,28 @@ def _build_model_labels(paths: list[Path]) -> list[str]:
         else:
             labels.append(base_label)
     return labels
+
+
+def _select_model_with_memory(
+    *,
+    label: str,
+    paths: list[Path],
+    state_key: str,
+) -> tuple[str, Path]:
+    """Render a model selector and persist the selected path across app modes."""
+    labels = _build_model_labels(paths)
+    stored_path = st.session_state.get(state_key)
+    selected_index = 0
+    if stored_path:
+        for idx, path in enumerate(paths):
+            if str(path) == stored_path:
+                selected_index = idx
+                break
+
+    selected_label = st.sidebar.selectbox(label, options=labels, index=selected_index)
+    selected_path = paths[labels.index(selected_label)]
+    st.session_state[state_key] = str(selected_path)
+    return selected_label, selected_path
 
 
 @st.cache_resource(show_spinner=False)
@@ -262,6 +326,10 @@ def _init_session_state() -> None:
     if "uploaded_images_data" not in st.session_state:
         # Stored as list[(filename, bytes)] so images persist across UI mode switches.
         st.session_state["uploaded_images_data"] = []
+    if "selected_discriminative_model_path" not in st.session_state:
+        st.session_state["selected_discriminative_model_path"] = None
+    if "selected_generative_model_path" not in st.session_state:
+        st.session_state["selected_generative_model_path"] = None
 
 
 def _render_loaded_images_right_panel(persisted_images: list[tuple[str, bytes]]) -> None:
@@ -683,7 +751,7 @@ def _render_realtime_video(
         )
 
 
-def _render_generation() -> None:
+def _render_generation(checkpoint_path: Path | None, selected_label: str | None) -> None:
     """Render phrase-to-sign GIF generation UI."""
     st.subheader("Generacion de frases")
 
@@ -695,9 +763,8 @@ def _render_generation() -> None:
         format_func=lambda value: f"{value:.2f}s",
     )
 
-    checkpoint_path = resolve_default_generator_checkpoint()
     if checkpoint_path is not None:
-        st.caption(f"Generador detectado: `{checkpoint_path.name}`")
+        st.caption(f"Generador seleccionado: `{selected_label or checkpoint_path.name}`")
     else:
         st.caption("No se encontro checkpoint generativo; se usaran muestras del dataset o frames de respaldo.")
 
@@ -744,29 +811,56 @@ def main() -> None:
     st.title("Sign Language Classifier")
     st.caption("Selecciona un modelo y el modulo de inferencia o generacion.")
 
-    if section == "Generacion":
-        _render_generation()
-        return
-
     artifacts_root = PROJECT_ROOT / "artifacts"
-    discovered_models = discover_available_models(artifacts_root)
-    default_model_path = _resolve_default_model_path()
-    if default_model_path.is_file() and default_model_path not in discovered_models:
-        discovered_models.insert(0, default_model_path)
+    runtime_device = "cuda" if torch.cuda.is_available() else "cpu"
+    st.sidebar.header("Configuracion")
+    st.sidebar.caption(f"Runtime device: {runtime_device}")
 
-    if not discovered_models:
-        st.warning(
-            "No se encontraron modelos en artifacts/. Entrena primero y guarda un .joblib o .pt/.pth/.ckpt."
+    if section == "Generacion":
+        generative_models = _discover_generative_models(artifacts_root)
+        default_generator_path = resolve_default_generator_checkpoint()
+        if default_generator_path is not None and _is_generative_model_path(default_generator_path):
+            default_generator_path = default_generator_path.resolve()
+            if default_generator_path not in generative_models:
+                generative_models.insert(0, default_generator_path)
+
+        selected_generator_label: str | None = None
+        selected_generator_path: Path | None = None
+        if generative_models:
+            selected_generator_label, selected_generator_path = _select_model_with_memory(
+                label="Modelo generativo",
+                paths=generative_models,
+                state_key="selected_generative_model_path",
+            )
+        else:
+            st.sidebar.info("No hay checkpoints generativos en artifacts/generation.")
+
+        _render_generation(
+            checkpoint_path=selected_generator_path,
+            selected_label=selected_generator_label,
         )
         return
 
-    model_options = _build_model_labels(discovered_models)
-    st.sidebar.header("Configuracion")
-    selected_label = st.sidebar.selectbox("Modelo", options=model_options, index=0)
-    selected_model_path = discovered_models[model_options.index(selected_label)]
+    discovered_models = _filter_discriminative_models(discover_available_models(artifacts_root))
+    default_model_path = _resolve_default_model_path()
+    if (
+        default_model_path.is_file()
+        and not _is_generative_model_path(default_model_path)
+        and default_model_path.resolve() not in discovered_models
+    ):
+        discovered_models.insert(0, default_model_path.resolve())
 
-    runtime_device = "cuda" if torch.cuda.is_available() else "cpu"
-    st.sidebar.caption(f"Runtime device: {runtime_device}")
+    if not discovered_models:
+        st.warning(
+            "No se encontraron modelos discriminativos en artifacts/. Entrena primero y guarda un .joblib o .pt/.pth/.ckpt."
+        )
+        return
+
+    selected_label, selected_model_path = _select_model_with_memory(
+        label="Modelo discriminativo",
+        paths=discovered_models,
+        state_key="selected_discriminative_model_path",
+    )
     top_k = 5
 
     device = torch.device(runtime_device)

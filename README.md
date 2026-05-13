@@ -272,12 +272,24 @@ Recomendación práctica: Iniciar el despliegue de `finetune-resnet18` de forma 
 
 ## Interfaz Streamlit
 
-La aplicacion (`app/streamlit_app.py`) tiene dos modos:
+La aplicacion (`app/streamlit_app.py`) centraliza la inferencia discriminativa y la generacion condicional. Tiene tres modos principales:
 
 1. **Clasificacion por imagenes** (batch)
 2. **Video en tiempo real** (webcam, si `streamlit-webrtc` esta disponible)
+3. **Generacion** (frase -> secuencia ASL -> GIF)
 
-![Aplicación Streamlit](./docs/StreamlitApp.png)
+La barra lateral muestra un selector de modelo distinto segun el modo:
+
+- En **Clasificacion por imagenes** y **Video en tiempo real** solo aparecen modelos discriminativos (`.joblib`, `.pt`, `.pth`, `.ckpt`) compatibles con `src/inference/predict.py`.
+- En **Generacion** solo aparecen checkpoints generativos con `model_type == "conditional_gan"`, compatibles con `src/inference/generator.py`.
+- La app recuerda por separado el ultimo modelo discriminativo y el ultimo modelo generativo seleccionados, de modo que al cambiar de pestana no se pierde la seleccion anterior.
+
+![Aplicacion Streamlit - Clasificacion](./docs/StreamlitApp.png)
+
+<!-- Hueco para la segunda captura:
+     Guarda la imagen de la pestana Generacion como docs/StreamlitGeneration.png
+     y deja activa la linea siguiente. -->
+![Aplicacion Streamlit - Generacion](./docs/StreamlitGeneration.png)
 
 ## Ejecutar app Streamlit
 
@@ -286,13 +298,13 @@ conda activate DL; streamlit run app/streamlit_app.py
 ```
 
 La app permite:
-- seleccionar modelo desde `artifacts/` (`.joblib`, `.pt`, `.pth`, `.ckpt`),
-- ver caracteristicas del modelo en la barra lateral,
-- subir una o varias imagenes,
-- obtener top-k predicciones (hasta top-5) por imagen,
+- seleccionar modelos discriminativos para clasificacion por imagen o video,
+- seleccionar modelos generativos para producir secuencias ASL desde texto,
+- ver caracteristicas del modelo discriminativo en la barra lateral,
+- subir una o varias imagenes y obtener top-k predicciones (hasta top-5),
 - limpiar imagenes subidas con un boton dedicado,
-- generar una secuencia GIF desde texto en el modo `Generacion`,
-- descargar el GIF generado.
+- escribir una frase en `Generacion`, ajustar la duracion por signo entre `0.5s` y `2.0s`,
+- visualizar el GIF generado y descargarlo.
 
 Notas:
 - Si existe `MODEL_PATH` en `.env`, se usa como opcion discriminativa por defecto.
@@ -306,13 +318,15 @@ Notas:
    ```bash
    conda activate DL; streamlit run app/streamlit_app.py
    ```
-2. En la barra lateral, selecciona el modelo (`.joblib`, `.pt`, `.pth`, `.ckpt`).
-3. En **"Clasificacion por imagenes"**, sube una o varias imagenes (drag & drop o selector de archivos).
+2. En **Clasificacion por imagenes** o **Video en tiempo real**, selecciona un modelo discriminativo en la barra lateral.
+3. En **Clasificacion por imagenes**, sube una o varias imagenes (drag & drop o selector de archivos).
 4. La app muestra:
    - tabla top-k por imagen,
    - miniaturas con top-5,
    - confianza media del lote,
    - accuracy/error del lote **solo** cuando la etiqueta real se puede inferir del nombre del archivo.
+5. En **Generacion**, selecciona un checkpoint generativo, escribe una frase y genera el GIF.
+6. Al volver a otra pestana, la app mantiene la ultima seleccion de cada familia de modelos.
 
 ## 👥 Autores del Proyecto
 
