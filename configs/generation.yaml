@@ -12,10 +12,13 @@ data:
 
 model:
   latent_dim: 128
-  embedding_dim: 64
+  embedding_dim: 128
   image_channels: 3
-  generator_channels: [512, 256, 128, 64]
-  discriminator_channels: [64, 128, 256, 512]
+  
+  generator_channels: [1024, 512, 256, 128] 
+  
+  discriminator_channels: [128, 256, 512, 1024]
+  
   label_smoothing: 0.9
 
 training:
