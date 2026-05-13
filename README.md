@@ -1,6 +1,8 @@
 # signlanguage-classifier
 
-**URL del proyecto:** [https://github.com/AleComan/signlanguage-classifier](https://github.com/AleComan/signlanguage-classifier)
+**URL del proyecto:** 
+
+[![GitHub](https://img.shields.io/badge/GitHub-Repo-blue?logo=github)](https://github.com/AleComan/signlanguage-classifier)
 
 Proyecto base para clasificacion y generacion de imagenes de lenguaje de signos con cuatro pipelines:
 
@@ -226,12 +228,12 @@ Inferencia generativa:
 > 
 > La siguiente tabla muestra los mejores modelos considerando todas las dimensiones. Además del *accuracy*, la selección está respaldada por métricas avanzadas (F1-score, Recall, Precision) monitorizadas en Weights & Biases para garantizar el rendimiento equitativo en todas las clases. Los tiempos y épocas varían para asegurar la correcta convergencia de cada arquitectura.
 
-| Modelo / Run | Familia | Val Accuracy | Train Accuracy | Gap (train-val) | Runtime |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| `finetune-resnet18` (10 epochs) | Transfer learning (ResNet18) | **0.9986** | 0.9987 | +0.0001 | 10152 s (~169 min) |
-| `scratch-cnn-trial-03-10-epochs` | CNN desde cero | 0.9955 | 0.9968 | +0.0014 | 4698 s (~78 min) |
-| `baseline-ml` (RF sobre features profundas) | ML clasico + deep features | 0.9955 | N/D | N/D | 959 s (~16 min) |
-| `scratch-cnn` (config base 10 epochs) | CNN desde cero | 0.9847 | 0.9346 | -0.0501 | 3040 s (~51 min) |
+| Modelo / Run | Familia | Val Accuracy | Train Accuracy | Gap (train-val) | Val F1-Score | Runtime |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| `finetune-resnet18` (10 epochs) | Transfer learning (ResNet18) | **0.9986** | 0.9987 | +0.0001 | 0.9985 | 10152 s (~169 min) |
+| `scratch-cnn-trial-03-10-epochs` | CNN desde cero | 0.9955 | 0.9968 | +0.0014 | 0.9955 | 4698 s (~78 min) |
+| `baseline-ml` (RF sobre features profundas) | ML clasico + deep features | 0.9955 | N/D | N/D | 0.9956 | 959 s (~16 min) |
+| `scratch-cnn` (config base 10 epochs) | CNN desde cero | 0.9847 | 0.9346 | -0.0501 | 0.9881 | 3040 s (~51 min) |
 
 ### Resultado del baseline ML
 
