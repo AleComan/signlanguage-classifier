@@ -233,7 +233,7 @@ Inferencia generativa:
 | `finetune-resnet18` (10 epochs) | Transfer learning (ResNet18) | **0.9986** | 0.9987 | +0.0001 | 0.9985 | 10152 s (~169 min) |
 | `scratch-cnn-trial-03-10-epochs` | CNN desde cero | 0.9955 | 0.9968 | +0.0014 | 0.9955 | 4698 s (~78 min) |
 | `baseline-ml` (RF sobre features profundas) | ML clasico + deep features | 0.9955 | N/D | N/D | 0.9956 | 959 s (~16 min) |
-| `scratch-cnn` (config base 10 epochs) | CNN desde cero | 0.9881 | 0.9346 | -0.0501 | 0.9881 | 3040 s (~51 min) |
+| `scratch-cnn-trial-03` (config base 8 epochs) | CNN desde cero | 0.9881 | 0.9491 | -0.039 | 0.9881 | 3093 s (~51 min) |
 
 ### Resultado del baseline ML
 
