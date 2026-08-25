@@ -22,7 +22,7 @@ Base project for sign language image classification and generation with four pip
 - [ASL generative pipeline](#asl-generative-pipeline)
 - [Experimental results](#experimental-results)
   - [Model comparison table](#model-comparison-table)
-  - [ML baseline results](#ml-baseline-results)
+  - [ML baseline results](#ml-baseline-result)
 - [Conclusions (Accuracy, Overfitting, and Deployment)](#conclusions-accuracy-overfitting-and-deployment)
   - [1) Which model has the best accuracy?](#1-which-model-has-the-best-accuracy)
   - [2) Does it generalize well, or is it overfitted?](#2-does-it-generalize-well-or-is-it-overfitted)
